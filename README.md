@@ -1,69 +1,249 @@
-# React + TypeScript + Vite
+# Phase 0 — Shopping cart App with shadcn/ui + Tailwind
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This README is your hands-on workshop package. It includes working code (TypeScript + React), inline comments, and short explanations for each block. Copy files as-is, then advance session by session.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+bunx --bun shadcn@latest add button card input badge separator sheet skeleton
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Phase 1 — Types & API Services
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1.1 Data Types
+
+`src/types/index.ts`
+
+```ts
+export type TProduct = {
+  id: number;
+  title: string;
+  price: number;
+  description: string;
+  category: string;
+  image: string;
+  rating?: { rate: number; count: number };
+};
+
+export type TCartItem = {
+  product: TProduct;
+  qty: number;
+};
+
+export type TCartState = {
+  items: Record<number, TCartItem>; // key = product.id
+};
 ```
+
+### 1.2 FakeStore Product Service
+
+`src/services/products.ts`
+
+```ts
+import type { TProduct } from "@/types";
+
+const BASE = "https://fakestoreapi.com";
+
+export async function fetchProducts(): Promise<TProduct[]> {
+  const res = await fetch(`${BASE}/products`);
+  if (!res.ok) throw new Error("Failed to fetch products");
+  return res.json();
+}
+```
+
+(Optional) To also try cart syncing:
+`src/services/cart.ts`
+
+```ts
+import type { TCartState } from "@/types";
+
+const BASE = "https://fakestoreapi.com";
+
+export async function syncCartToApi(cart: TCartState) {
+  const products = Object.values(cart.items).map((ci) => ({
+    productId: ci.product.id,
+    quantity: ci.qty,
+  }));
+  const body = {
+    userId: 1,
+    date: new Date().toISOString().split("T")[0],
+    products,
+  };
+  try {
+    const res = await fetch(`${BASE}/carts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      console.warn("Cart sync failed", await res.text());
+    }
+  } catch (e) {
+    console.warn("Cart sync error", e);
+  }
+}
+```
+
+---
+
+## Phase 2 — Cart with `useReducer` + Context + Persist
+
+### 2.1 Reducer
+
+`src/state/cartReducer.ts`
+(Your reducer and selectors stay the same as you wrote — add/remove/set qty/clear, totalItems, totalPrice, etc.)
+
+### 2.2 Context + LocalStorage Persist (+ optional API Sync)
+
+`src/context/CartContext.tsx`
+(Your implementation is already in English-ready form.)
+
+---
+
+## Phase 3 — Shell UI: Header + App Skeleton
+
+### 3.1 Header with Item Count from Context
+
+`src/components/Header.tsx`
+(Shows shop name, cart button, and badge with item count.)
+
+### 3.2 App Skeleton + Checkout Scroll Ref
+
+`src/App.tsx`
+(Contains Header, Products section, and Checkout section with `useRef` for smooth scrolling.)
+
+---
+
+## Phase 4 — Product List + Product Card + Add to Cart
+
+### 4.1 ProductCard
+
+Displays image, title, price badge, description, and “Add to cart” button with toast.
+
+### 4.2 ProductList with Loading & Error States
+
+- Uses `fetchProducts()`
+- Shows skeleton loaders until products arrive
+- Handles error gracefully
+
+---
+
+## Phase 5 — Checkout: Quantity Control, Remove, Totals, Scroll
+
+`src/components/Checkout.tsx`
+
+- Shows cart items with +/– buttons, input field, and remove button
+- Displays totals in a summary card
+- “Place Order” and “Clear Cart” buttons
+
+---
+
+## Phase 6 — Folder Structure + Final Notes
+
+### Suggested Folder Structure
+
+```
+src/
+  components/
+    Header.tsx
+    ProductCard.tsx
+    ProductList.tsx
+    Checkout.tsx
+    ui/
+      button.tsx
+      card.tsx
+      input.tsx
+      badge.tsx
+      separator.tsx
+      sheet.tsx
+      skeleton.tsx
+  context/
+    CartContext.tsx
+  state/
+    cartReducer.ts
+  services/
+    products.ts
+    cart.ts
+  types/
+    index.ts
+  lib/
+    utils.ts
+  App.tsx
+  main.tsx
+index.html
+index.css
+tailwind.config.js
+components.json
+```
+
+- **Separation of concerns**: Types, services, state, and UI kept separate
+- **Persist & Sync**: `CartContext` handles localStorage and optional API sync
+- **DX**: shadcn/ui for UI consistency, Sonner for toasts
+
+---
+
+# Running the Project
+
+```bash
+bun dev
+```
+
+---
+
+# README (Concise & Practical)
+
+````md
+# Organa — FakeStore Shop (React + Vite + Tailwind + shadcn/ui)
+
+A minimal e-commerce demo using https://fakestoreapi.com/products
+
+## Stack
+
+- React + Vite + TypeScript
+- TailwindCSS (+ tailwindcss-animate)
+- shadcn/ui (Radix-based)
+- Sonner (toasts)
+- State: `useReducer` + `useContext`
+- Persistence: `localStorage` (+ optional API sync)
+
+## Features
+
+- Product list from FakeStore API
+- Cart management (add/remove/set qty/clear)
+- Cart count in Header via Context
+- Smooth scroll to Checkout via `useRef`
+- Persist cart between refreshes
+
+## Getting Started
+
+```bash
+bun install
+bun dev
+```
+
+## Project Structure
+
+- `components/`: UI components (Header, ProductList, ProductCard, Checkout)
+- `components/ui`: shadcn/ui building blocks
+- `context/CartContext.tsx`: cart provider + persistence + (optional) sync
+- `state/cartReducer.ts`: reducer + selectors
+- `services/`: API calls
+- `types/`: shared TS types
+- `lib/utils.ts`: `cn` helper
+
+## Optional API Sync
+
+In `src/context/CartContext.tsx`, switch:
+
+```ts
+const ENABLE_API_SYNC = false; // => true to enable
+```
+
+This will POST a fake cart to `/carts` (best-effort, ignores failures).
+
+## Scripts
+
+- `bun dev` — start dev server
+- `bun build` — production build
+- `bun preview` — preview production build
+````
