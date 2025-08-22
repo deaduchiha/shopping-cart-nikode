@@ -51,39 +51,6 @@ export async function fetchProducts(): Promise<TProduct[]> {
 }
 ```
 
-(Optional) To also try cart syncing:
-`src/services/cart.ts`
-
-```ts
-import type { TCartState } from "@/types";
-
-const BASE = "https://fakestoreapi.com";
-
-export async function syncCartToApi(cart: TCartState) {
-  const products = Object.values(cart.items).map((ci) => ({
-    productId: ci.product.id,
-    quantity: ci.qty,
-  }));
-  const body = {
-    userId: 1,
-    date: new Date().toISOString().split("T")[0],
-    products,
-  };
-  try {
-    const res = await fetch(`${BASE}/carts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      console.warn("Cart sync failed", await res.text());
-    }
-  } catch (e) {
-    console.warn("Cart sync error", e);
-  }
-}
-```
-
 ---
 
 ## Phase 2 — Cart with `useReducer` + Context + Persist
@@ -93,7 +60,7 @@ export async function syncCartToApi(cart: TCartState) {
 `src/state/cartReducer.ts`
 (Your reducer and selectors stay the same as you wrote — add/remove/set qty/clear, totalItems, totalPrice, etc.)
 
-### 2.2 Context + LocalStorage Persist (+ optional API Sync)
+### 2.2 Context + LocalStorage Persist
 
 `src/context/CartContext.tsx`
 (Your implementation is already in English-ready form.)
@@ -192,7 +159,6 @@ bun dev
 
 # README (Concise & Practical)
 
-````md
 # Organa — FakeStore Shop (React + Vite + Tailwind + shadcn/ui)
 
 A minimal e-commerce demo using https://fakestoreapi.com/products
@@ -230,20 +196,3 @@ bun dev
 - `services/`: API calls
 - `types/`: shared TS types
 - `lib/utils.ts`: `cn` helper
-
-## Optional API Sync
-
-In `src/context/CartContext.tsx`, switch:
-
-```ts
-const ENABLE_API_SYNC = false; // => true to enable
-```
-
-This will POST a fake cart to `/carts` (best-effort, ignores failures).
-
-## Scripts
-
-- `bun dev` — start dev server
-- `bun build` — production build
-- `bun preview` — preview production build
-````
