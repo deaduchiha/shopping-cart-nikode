@@ -14,5 +14,5 @@ export type TCartItem = {
 };
 
 export type TCartState = {
-  items: Record<number, TCartItem>; // key = product.id
+  items: TCartItem[];
 };
